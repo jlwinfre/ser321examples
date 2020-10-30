@@ -262,7 +262,7 @@ class WebServer {
           StringBuilder page = new StringBuilder();
           page.append("<html><head><body><ul>");
           for (int i = 0; i < repos.length(); i++) {
-            JSONObject repo = repoArray.getJSONObject(i);
+            JSONObject repo = repos.getJSONObject(i);
 
             page.append("<li><p>");
             JSONObject owner = repo.getJSONObject("owner");
