@@ -17,6 +17,7 @@ write a response back
 package funHttpServer;
 
 import java.io.*;
+import org.json.*;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -201,21 +202,46 @@ class WebServer {
           // extract path parameters
           query_pairs = splitQuery(request.replace("multiply?", ""));
 
-          // extract required fields from parameters
-          Integer num1 = Integer.parseInt(query_pairs.get("num1"));
-          Integer num2 = Integer.parseInt(query_pairs.get("num2"));
+          try {
 
-          // do math
-          Integer result = num1 * num2;
+            if (!query_pairs.containsKey("num1") || !query_pairs.containsKey("num2")) {
+              throw new NoSuchFieldException();
+            } 
+            // extract required fields from parameters
+            Integer num1 = Integer.parseInt(query_pairs.get("num1"));
+            Integer num2 = Integer.parseInt(query_pairs.get("num2"));
 
-          // Generate response
-          builder.append("HTTP/1.1 200 OK\n");
-          builder.append("Content-Type: text/html; charset=utf-8\n");
-          builder.append("\n");
-          builder.append("Result is: " + result);
+            // do math
+            Integer result = num1 * num2;
 
-          // TODO: Include error handling here with a correct error code and
-          // a response that makes sense
+            // Generate response
+            builder.append("HTTP/1.1 200 OK\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Result is: " + result);
+
+          } catch (NoSuchFieldException e1) {
+
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Malformed request. Missing arguments.");
+
+          } catch (NumberFormatException e2) {
+
+            builder.append("HTTP/1.1 406 Not Acceptable\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Failed to parse given numbers.");
+
+          } catch (Exception e3) {
+
+            builder.append("HTTP/1.1 500 Server Error\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Request failed. Error unknown.");
+            
+          }
 
         } else if (request.contains("github?")) {
           // pulls the query from the request and runs it with GitHub's REST API
@@ -229,6 +255,40 @@ class WebServer {
           Map<String, String> query_pairs = new LinkedHashMap<String, String>();
           query_pairs = splitQuery(request.replace("github?", ""));
           String json = fetchURL("https://api.github.com/" + query_pairs.get("query"));
+
+          JSONArray repos = new JSONArray(json);
+          // JSONArray parsedList = new JSONArray();
+
+          StringBuilder page = new StringBuilder();
+          page.append("<html><head><body><ul>");
+          for (int i = 0; i < repos.length(); i++) {
+            JSONObject repo = repoArray.getJSONObject(i);
+
+            page.append("<li><p>");
+            JSONObject owner = repo.getJSONObject("owner");
+            String ownerName = owner.getString("login");
+            page.append(ownerName + ", ");
+            String repoId = repo.getNumber("id").toString();
+            page.append(repoId + " -> ");
+            String repoName = repo.getString("name");
+            page.append(repoName + "</p></li>");
+            // JSONObject newRepo = new JSONObject();
+            // newRepo.put("name",repoName);
+            // newRepo.put("owner",ownerName);
+            // newRepo.put("id",repoId);
+
+            // parsedList.put(newRepo);
+            // page.append("</li>");
+          }
+
+          page.append("</ul></body></html>");
+
+          // SUCCESS
+          builder.append("HTTP/1.1 200 OK\n");
+          builder.append("Content-Type: text/html; charset=utf-8\n");
+          builder.append("\n");
+          builder.append(page.toString());
+
           System.out.println(json);
 
           builder.append("Check the todos mentioned in the Java source file");
